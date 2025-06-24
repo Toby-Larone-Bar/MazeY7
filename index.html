@@ -164,17 +164,22 @@ function popQuestion(){
     const d=document.createElement("div");
     d.className = "option"; d.innerText = o;
     d.onclick = ()=>{
-      if(answering===false) return;
-      if(i===q.ok){
-        document.getElementById("feedback").innerText = "✅ Correct!";
-        clearTimeout(feedbackTimer);
-        feedbackTimer = setTimeout(()=>{
-          showQ(false);
-          answering = false;
-        }, 1000);
-      } else {
-        document.getElementById("feedback").innerText = "❌ Try again!";
-      }
+  if(answering === false) return;
+  if(i === q.ok){
+    document.getElementById("feedback").innerText = "✅ Correct!";
+    clearTimeout(feedbackTimer);
+    feedbackTimer = setTimeout(()=>{
+      showQ(false);
+      answering = false;
+    }, 1000);
+  } else {
+    document.getElementById("feedback").innerText = "❌ Try again!";
+    answering = false;
+    setTimeout(() => {
+      answering = true;
+      document.getElementById("feedback").innerText = ""; // clear feedback after delay
+    }, 1500); // 1.5 second delay before retrying
+  }
     };
     optsDiv.appendChild(d);
   });
