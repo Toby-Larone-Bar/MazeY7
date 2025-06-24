@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Harware Software Maze Game</title>
+<style>
+  body { display:flex; margin:0; font-family:sans-serif; background:#e0f7fa; }
+  #instructions {
+    width:250px; padding:20px;
+    background:#fff; border-right:2px solid #00796b;
+    display: flex; flex-direction: column; gap:20px;
+  }
+  #main { flex:1; padding:20px; position:relative; }
+  canvas { border:2px solid #00796b; background:#fff; display:block; margin:0 auto; }
+  #questionBox {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:#fff; border:2px solid #00796b; padding:20px;
+    display:none; text-align:center; z-index:2;
+  }
+  .option {
+    margin:5px 0; padding:8px 12px;
+    background:#eee; border:1px solid #00796b; cursor:pointer;
+  }
+  .option:hover { background:#b2ebf2; }
+  #feedback { margin-top:10px; font-size:20px; font-weight:bold; height:24px; }
+
+  .definition {
+    font-size:14px;
+    border-top:1px solid #ccc;
+    padding-top:10px;
+  }
+</style>
+</head>
+<body>
+
+<div id="instructions">
+  <div>
+    <h2>Instructions</h2>
+    <p>Use <strong>Arrow Keys</strong> to move the car one square at a time.</p>
+    <p>You will be asked a question every 3 moves.</p>
+    <p><span style="color:#00e676">Green</span> = start • <span style="color:#ffd600">Yellow</span> = goal</p>
+  </div>
+
+  <div class="definition">
+    <h3>Hardware</h3>
+    <p>A computer part that you can physically hold or touch, this part can be inside or outside a computer.</p>
+    <p><strong>Examples:</strong> Touch screen, mouse, keyboard, graphics card, CPU</p>
+  </div>
+
+  <div class="definition">
+    <h3>Software</h3>
+    <p>Something that runs on a computer. An app on your phone or a program on your computer.</p>
+    <p><strong>Examples:</strong> Instagram, Snapchat, Google Chrome, Windows 10</p>
+  </div>
+</div>
+
+<div id="main">
+  <canvas id="gameCanvas" width="800" height="800"></canvas>
+  <div id="questionBox">
+    <div id="questionText"></div>
+    <div id="options"></div>
+    <div id="feedback"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas"),
+      ctx = canvas.getContext("2d"),
+      tile = 40,
+      rows = 20, cols = 20;
+
+const maze = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,3,1],
+  [1,0,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1,1],
+  [1,0,1,0,1,1,0,1,0,0,0,1,0,0,0,0,1,0,1,1],
+  [1,0,0,0,0,0,0,0,0,1,0,1,1,0,1,0,1,0,0,1],
+  [1,1,1,0,1,1,0,1,1,0,0,0,0,0,1,0,1,1,0,1],
+  [1,0,0,0,0,1,0,1,0,1,1,1,1,0,0,0,0,1,0,1],
+  [1,0,1,1,0,1,0,1,0,0,0,0,1,0,1,1,1,0,0,1],
+  [1,0,1,0,0,0,0,1,0,1,1,0,1,0,1,0,0,1,0,1],
+  [1,0,1,0,1,1,0,1,0,0,1,0,1,1,0,1,0,1,0,1],
+  [1,0,1,0,1,1,0,1,1,0,1,0,0,0,0,1,0,1,0,1],
+  [1,0,0,0,0,1,0,0,1,0,1,1,1,1,0,1,0,0,0,1],
+  [1,0,1,1,0,1,1,0,1,0,0,0,0,1,0,1,1,1,0,1],
+  [1,0,0,0,0,0,0,0,1,0,1,1,0,1,0,0,1,0,0,1],
+  [1,1,0,1,1,1,1,0,1,0,0,1,0,1,1,0,0,1,0,1],
+  [1,0,0,0,0,0,1,1,0,1,0,1,0,0,0,1,0,1,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,1,0,1,0,0,0,0,1],
+  [1,0,0,0,1,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1],
+  [1,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
+
+const qsOriginal = [
+ {text:"Which one is hardware?", opts:["Mouse", "Google Drive", "Instagram"], ok:0},
+  {text:"Which one is hardware?", opts:["Keyboard", "Microsoft Word", "Spotify"], ok:0},
+  {text:"Which one is hardware?", opts:["CPU", "Facebook", "Google Drive"], ok:0},
+  {text:"Which one is hardware?", opts:["Speakers", "Skype", "Zoom"], ok:0},
+  {text:"Which one is hardware?", opts:["Monitor", "Notepad", "Roblox"], ok:0},
+
+  {text:"Which one is hardware?", opts:["Instagram", "Printer", "Roblox"], ok:1},
+  {text:"Which one is hardware?", opts:["Discord", "Webcam", "TikTok"], ok:1},
+  {text:"Which one is hardware?", opts:["Spotify", "Hard Drive", "Google Drive"], ok:1},
+  {text:"Which one is hardware?", opts:["Notepad", "Graphics Card", "Zoom"], ok:1},
+  {text:"Which one is hardware?", opts:["Microsoft Word", "Motherboard", "Snapchat"], ok:1},
+{text:"Which one is hardware?", opts:["Instagram", "Google Chrome", "Projector"], ok:2},
+  {text:"Which one is hardware?", opts:["Google Drive", "Spotify", "Touch Screen"], ok:2},
+  {text:"Which one is hardware?", opts:["Snapchat", "Roblox", "Webcam"], ok:2},
+  {text:"Which one is hardware?", opts:["TikTok", "Facebook", "Speakers"], ok:2},
+  {text:"Which one is hardware?", opts:["Notepad", "Discord", "Motherboard"], ok:2},
+{text:"Which one is software?", opts:["Microsoft Word", "Keyboard", "Router"], ok:0},
+  {text:"Which one is software?", opts:["Spotify", "Mic", "Monitor"], ok:0},
+  {text:"Which one is software?", opts:["Google Drive", "Projector", "Hard Drive"], ok:0},
+  {text:"Which one is software?", opts:["YouTube", "Webcam", "Speakers"], ok:0},
+  {text:"Which one is software?", opts:["Instagram", "Printer", "Camera"], ok:0},
+{text:"Which one is software?", opts:["Mouse", "Microsoft Excel", "Touch Screen"], ok:1},
+  {text:"Which one is software?", opts:["External Hard Drive", "Google Chrome", "Router"], ok:1},
+  {text:"Which one is software?", opts:["Printer", "Skype", "Headphones"], ok:1},
+  {text:"Which one is software?", opts:["Speakers", "Adobe Photoshop", "Smartphone"], ok:1},
+  {text:"Which one is software?", opts:["USB Flash Drive", "Zoom", "Monitor"], ok:1},
+ {text:"Which one is software?", opts:["Mouse", "CPU", "TikTok"], ok:2},
+  {text:"Which one is software?", opts:["Monitor", "Webcam", "Windows 10"], ok:2},
+  {text:"Which one is software?", opts:["Printer", "Keyboard", "YouTube"], ok:2},
+  {text:"Which one is software?", opts:["Router", "Graphics Card", "Fortnite"], ok:2},
+  {text:"Which one is software?", opts:["Speakers", "Headphones", "Facebook"], ok:2},
+
+
+
+];
+
+let shuffledQs = [...qsOriginal].sort(() => 0.5 - Math.random());
+let currentQIndex = 0;
+let carX=1, carY=1, answering=false, feedbackTimer, moveCount=0;
+
+function drawMaze(){
+  ctx.clearRect(0,0,cols*tile,rows*tile);
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const t=maze[y][x];
+      ctx.fillStyle = t===1?"#000": t===2?"#00e676": t===3?"#ffd600":"#fff";
+      ctx.fillRect(x*tile,y*tile,tile,tile);
+      ctx.strokeRect(x*tile,y*tile,tile,tile);
+    }
+  }
+  ctx.fillStyle="red";
+  ctx.fillRect(carX*tile+10, carY*tile+10, tile-20, tile-20);
+}
+
+function showQ(on){
+  document.getElementById("questionBox").style.display = on?"block":"none";
+}
+
+function popQuestion(){
+  answering = true;
+  const q = shuffledQs[currentQIndex];
+  currentQIndex = (currentQIndex + 1) % shuffledQs.length;
+  document.getElementById("questionText").innerText = q.text;
+  const optsDiv = document.getElementById("options");
+  optsDiv.innerHTML = "";
+  document.getElementById("feedback").innerText = "";
+  q.opts.forEach((o,i)=>{
+    const d=document.createElement("div");
+    d.className = "option"; d.innerText = o;
+    d.onclick = ()=>{
+      if(answering===false) return;
+      if(i===q.ok){
+        document.getElementById("feedback").innerText = "✅ Correct!";
+        clearTimeout(feedbackTimer);
+        feedbackTimer = setTimeout(()=>{
+          showQ(false);
+          answering = false;
+        }, 1000);
+      } else {
+        document.getElementById("feedback").innerText = "❌ Try again!";
+      }
+    };
+    optsDiv.appendChild(d);
+  });
+  showQ(true);
+}
+
+function tryMove(dx,dy){
+  if(answering) return;
+  const nx=carX+dx, ny=carY+dy;
+  if(nx<0||nx>=cols||ny<0||ny>=rows||maze[ny][nx]===1) return;
+  carX=nx; carY=ny;
+  moveCount++;
+  drawMaze();
+  if(maze[carY][carX]===3){
+    document.getElementById("questionText").innerText="🎉 You reached the Goal!";
+    document.getElementById("options").innerHTML="";
+    document.getElementById("feedback").innerText="";
+    showQ(true);
+  } else if(moveCount % 3 === 0) {
+    popQuestion();
+  }
+}
+
+document.addEventListener("keydown", e=>{
+  if(answering) return;
+  if(e.key==="ArrowUp") tryMove(0,-1);
+  if(e.key==="ArrowDown") tryMove(0,1);
+  if(e.key==="ArrowLeft") tryMove(-1,0);
+  if(e.key==="ArrowRight") tryMove(1,0);
+});
+
+drawMaze();
+</script>
+
+</body>
+</html>
